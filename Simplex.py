@@ -33,31 +33,57 @@ class Simplex:
 
 
     def simplex_phase_one(self):
-        # Initialize artificial matrix as an mxm identity matrix
-        artificial_matrix = []
-        for i in range(len(self.A)):
-            artificial_matrix.append(
-                numpy.array([
-                    0 if j != i else 1 
-                    for j in range(len(self.A))
-                ])
-            )
-
-        # Define basic matrix as artificial matrix
-        self.B = numpy.array(artificial_matrix)
-        # Define non-basic matrix as input A matrix
-        self.N = numpy.copy(self.A)
+        # Initialize identity matrix as an mxm identity matrix
+        identity = numpy.identity(len(self.A))
+        
+        # Create a mapping for the columns which will be in the base
+        # of the artificial problem
+        self.B_A_indices = [-1 for i in range(len(self.A))]
+        
+        # Map the columns from matrix A
+        for i in range(len(self.A.T)):
+            for j in range(len(identity)):
+                if (all(self.A[:, i] == identity[:, j])):
+                    self.B_A_indices[j] = i
+        
+        k = 0
+        # Map the columns from artificial variables
+        for i in range(len(self.B_A_indices)):
+            if (self.B_A_indices[i] == -1):
+                self.B_A_indices[i] = k+len(self.A.T)
+                k += 1
         
         # Map the column indices of basic and non-basic matrix
         # Artificial columns indices starts at n+1
-        self.B_A_indices = [i+len(self.N.T) for i in range(len(self.B.T))]
-        self.N_A_indices = [i for i in range(len(self.N.T))]
+        self.N_A_indices = [
+            i 
+            for i in numpy.where([
+                j not in self.B_A_indices
+                for j in range(len(self.A.T))
+            ])[0]
+        ]
 
-        # Define cb as 1, since they are the artificial variables costs
-        self.cb = numpy.array([1.0] * len(artificial_matrix))
+        # Define basic matrix as identity
+        self.B = numpy.array(identity)
+        
+        # Define non-basic matrix as columns from A without the ones on the
+        # base.
+        self.N = numpy.copy(
+            numpy.array([
+                self.A[:, i]
+                for i in self.N_A_indices
+            ]).T
+        )
+
+        # Define cb as 1 for the artificial variables
+        self.cb = numpy.array([
+            1.0 if index >= len(self.A.T) else 0
+            for index in self.B_A_indices
+        ])
+
         # Define cn as 0, since they are the original variables costs
-        self.cn = numpy.array([0.0] * len(self.A[0]))
-
+        self.cn = numpy.array([0.0] * len(self.N.T))
+        
         # Since B is an identity, the solution is b
         self.xb = numpy.copy(self.b)
 
@@ -106,6 +132,7 @@ class Simplex:
             # New solution
             self.xb = numpy.matmul(B_inv, self.b)
             
+
             # print(Valor variáveis básicas:)
             # print(self.xb)
 
@@ -158,6 +185,7 @@ class Simplex:
             col_N = numpy.copy(self.N.T[in_var])
             col_B = numpy.copy(self.B.T[out_var])
             
+
             self.B[:, out_var] = col_N
             self.N[:, in_var] = col_B
 
@@ -209,6 +237,9 @@ class Simplex:
         self.b = numpy.array(b_list)
         self.c = numpy.array(c_list)
         
+        # Print the model in Standard form
+        self.print_model()
+
         # If there is a negative value in b,
         # make it positive by multiplying its line
         # (this is needed for simplex phase 1)
@@ -272,6 +303,48 @@ class Simplex:
             self.solution[self.B_A_indices[i]] = self.xb[i]
         
 
+    def print_model(self):
+        text = "*" * 80 + "\n"
+        text += "MODELO NA FORMA PADRÃO:\n"
+        
+        # Print Objective Function
+        text += "min \t"
+        for i in range(len(self.A[0])):
+            text += str(self.c[i]) + "x_" + str(i+1)
+            if ((i < len(self.c)-1) and (self.c[i+1] >= 0)):
+                text += " + "
+            else:
+                text += " "
+        text += "\n"
+        
+        text += "Subject to:\n"
+        # Print Ax = b
+        for i in range(len(self.A)):
+            text += "(" + str(i+1) + ")" + "\t"
+            for j in range(len(self.A.T)):
+                text += str(self.A[i][j]) + "x_" + str(j+1)
+                if ((j < len(self.A.T)-1) and (self.A[i][j+1] >= 0)):
+                    text += " + "
+                else:
+                    text += " "
+            text += "= "
+            text += str(self.b[i])
+            text += "\n"
+
+        # Print x >= 0
+        text += "\t"
+        for i in range(len(self.A[0])):
+            text += "x_" + str(i+1) + ">=" + "0"
+            if (i < len(self.A[0])-1):
+                text += ", "
+            else:
+                text += "\n"
+        
+        text += "*" * 80 + "\n"
+        print(text)
+
+
+
     def print_solution(self):
         # If optimal value is None, the algorithm was not executed
         if (self.optimal is None):
@@ -282,26 +355,30 @@ class Simplex:
         # Otherwise, if optimal, prints the solution 
         # and indicates if it is degenerated
         if (self.optimal):
-            text = "Solução ótima encontrada."
+            text = "***** Solução ótima encontrada. *****"
+            text += "Solução no formato Padrão"
             if (self.degenerated):
                 text += " A solução é degenerada."
             print(text)
             for i, value in enumerate(self.solution):
                 print(
-                    "X_" + str(i) + 
+                    "x_" + str(i+1) + 
                     " = " + 
                     str(numpy.round(value, decimals=6))
                 )
-            print(numpy.round(self.objective, decimals=6))
+            print(
+                "Função Objetivo (minimização) = " 
+                + str(numpy.round(self.objective, decimals=6))
+            )
             return
     
         # If the problem is infeasible it is printed
         if (self.infeasible):
-            print("Solução infactível")
+            print("***** Solução infactível *****")
             return
         
         # If the problem is unlimited it is printed
         if (self.unlimited):
-            print("Solução com função objetivo ilimitada.")
+            print("***** Solução com função objetivo ilimitada. *****")
             return
 

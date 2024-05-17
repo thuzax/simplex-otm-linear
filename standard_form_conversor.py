@@ -1,5 +1,9 @@
 import numpy
 
+def convert_to_min(problem_type, c):
+    if (problem_type.upper() == "MAX"):
+        return (numpy.array(c) * -1).tolist()
+    return c
 
 def get_slack_sign(operator):
     if (operator == "<" or operator == "<="):

@@ -1,0 +1,11 @@
+min // problema de minimização (T)
+3 // número de variáveis (n = 2)
+5 // número de restrições (m = 5)
+0.56 0.81 0.46 // vetor de custos (c)
+0.2 0.5 0.4 // Primeira linha da matriz A
+0.6 0.4 0.4 // Segunda linha da matriz A
+0.2 0.5 0.4 // Terceira linha da matriz A
+0.6 0.4 0.4 // Quarta linha da matriz A
+1 1 1 // Quarta linha da matriz A (como m = 5, é a última linha)
+>, >=, <, <=, = // Operadores de cada linha (O)
+0.3 0.5 0.8 0.7 1 // vetor de recursos (b)
