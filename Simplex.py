@@ -93,48 +93,50 @@ class Simplex:
         # Solve artificial problem
         self.simplex_phase_two()
 
+        # If there is any artificial variable in the solution
+        # the problem is infeasible
+        if (self.objective > 0):
+            self.optimal = False
+            self.unlimited = False
+            self.infeasible = True
+            return
+        
         # Search for the indices of the artificial variables  on basic matrix
         artificial_vars_in_solution = numpy.where([
             i >= len(self.A.T) 
             for i in self.B_A_indices
         ])[0]
 
-        # If there is any artificial variable in the solution
-        # the problem is infeasible
-        if (len(artificial_vars_in_solution) > 0):
-            self.optimal = False
-            self.unlimited = False
-            self.infeasible = True
-            return
 
 
     def simplex_phase_two(self):
         
-        # print("Matriz basica:")
-        # print(self.B)
-        # print("Vetor de custos básicos:")
-        # print(self.cb)
-        # print("Mapa de indices das colunas básicas:")
-        # print(self.B_A_indices)
-        # print("Matriz não basica:")
-        # print(self.N)
-        # print("Vetor de custos não básicos:")
-        # print(self.cn)
-        # print("Mapa de indices das colunas não básicas:")
-        # print(self.N_A_indices)
-        # print("Valor F.O.:")
-        # print(self.objective)
+        print("Matriz basica:")
+        print(self.B)
+        print("Vetor de custos básicos:")
+        print(self.cb)
+        print("Mapa de indices das colunas básicas:")
+        print(self.B_A_indices + numpy.array([1] * len(self.B_A_indices)))
+        print("Matriz não basica:")
+        print(self.N)
+        print("Vetor de custos não básicos:")
+        print(self.cn)
+        print("Mapa de indices das colunas não básicas:")
+        print(self.N_A_indices + numpy.array([1] * len(self.N_A_indices)))
+        print("Valor F.O.:")
+        print(self.objective)
 
         self.it = 0
         while True:
+            self.objective = numpy.round(self.objective, 10)
             # print("*********************************************************")
             B_inv = numpy.linalg.inv(self.B)
             # New solution
-            self.xb = numpy.matmul(B_inv, self.b)
+            self.xb = numpy.round(numpy.matmul(B_inv, self.b), 10)
             
 
-            # print(Valor variáveis básicas:)
-            # print(self.xb)
+            print("Valor variáveis básicas:")
+            print(self.xb)
 
             # Simplex multiplier vector
             simplex_multipliers_T = (numpy.matmul(self.cb.T, B_inv))
@@ -144,6 +146,8 @@ class Simplex:
                 self.cn[j] - numpy.matmul(simplex_multipliers_T, self.N.T[j]) 
                 for j in range(len(self.N.T))
             ])
+
+            cn_new = numpy.round(cn_new, 10)
 
             # Best improvement value
             cn_k = numpy.min(cn_new)
@@ -162,6 +166,7 @@ class Simplex:
             
             # Otherwise, calculate simplex direction
             simplex_direction = numpy.matmul(B_inv, self.N.T[in_var])
+            simplex_direction = numpy.round(simplex_direction, 10)
             if (all(simplex_direction <= 0)):
                 self.optimal = False
                 self.infeasible = False
@@ -205,25 +210,25 @@ class Simplex:
             # Objective Function update
             self.objective += (cn_k * step_size)
 
-            # print(
-            #     "entra coluna " + str(column_N) + 
-            #     ", sai coluna " + str(column_B)
-            # )
+            print(
+                "entra coluna " + str(column_N) + 
+                ", sai coluna " + str(column_B)
+            )
            
-            # print("Matriz basica:")
-            # print(self.B)
-            # print("Vetor de custos básicos:")
-            # print(self.cb)
-            # print("Mapa de indices das colunas básicas:")
-            # print(self.B_A_indices)
-            # print("Matriz não basica:")
-            # print(self.N)
-            # print("Vetor de custos não básicos:")
-            # print(self.cn)
-            # print("Mapa de indices das colunas não básicas:")
-            # print(self.N_A_indices)
-            # print("Valor F.O.:")
-            # print(self.objective)
+            print("Matriz basica:")
+            print(self.B)
+            print("Vetor de custos básicos:")
+            print(self.cb)
+            print("Mapa de indices das colunas básicas:")
+            print(self.B_A_indices + numpy.array([1] * len(self.B_A_indices)))
+            print("Matriz não basica:")
+            print(self.N)
+            print("Vetor de custos não básicos:")
+            print(self.cn)
+            print("Mapa de indices das colunas não básicas:")
+            print(self.N_A_indices + numpy.array([1] * len(self.N_A_indices)))
+            print("Valor F.O.:")
+            print(self.objective)
 
             self.it += 1
 
