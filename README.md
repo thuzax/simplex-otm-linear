@@ -1,6 +1,6 @@
 # Simplex
 
-O algoritmo simplex implementado se baseia no algoritmo descrito por Arenales et al. (2007). Foi implementado o método de duas fases. Não foi considerada a degeneração por parte de variáveis artificiais.
+O algoritmo simplex implementado se baseia no algoritmo descrito por Arenales et al. (2007). Foi implementado o método Big M para obter uma base inicial.
 
 # Requisitos
 

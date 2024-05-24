@@ -31,7 +31,10 @@ class Simplex:
         # Mapping of non-basic matrix columns
         self.N_A_indices = None
 
+        self.big_m = 100000000
 
+
+    # Create basic and non-basic matrix and add big M costs
     def simplex_phase_one(self):
         # Initialize identity matrix as an mxm identity matrix
         identity = numpy.identity(len(self.A))
@@ -75,15 +78,19 @@ class Simplex:
             ]).T
         )
 
-        # Define cb as 1 for the artificial variables
+        # Define cb as big M for the artificial variables and use
+        # the costs from array c for the other variables on base
         self.cb = numpy.array([
-            1.0 if index >= len(self.A.T) else 0
-            for index in self.B_A_indices
+            self.big_m if base_index >= len(self.A.T) else self.c[base_index]
+            for base_index in self.B_A_indices
         ])
 
-        # Define cn as 0, since they are the original variables costs
-        self.cn = numpy.array([0.0] * len(self.N.T))
-        
+        # Define cn as the non-basic variable costs
+        self.cn = numpy.array([
+            self.c[non_base_index]
+            for non_base_index in self.N_A_indices
+        ])
+
         # Since B is an identity, the solution is b
         self.xb = numpy.copy(self.b)
 
@@ -93,38 +100,37 @@ class Simplex:
         # Solve artificial problem
         self.simplex_phase_two()
 
-        # If there is any artificial variable in the solution
+        # If there is any artificial variable in the solution with value > 0
         # the problem is infeasible
-        if (self.objective > 0):
+        artificial_vars_positions_solution = numpy.where([
+            i >= len(self.A.T) and self.xb[self.B_A_indices.index(i)] > 0
+            for i in self.B_A_indices
+        ])[0]
+
+        if (len(artificial_vars_positions_solution) > 0):
             self.optimal = False
             self.unlimited = False
             self.infeasible = True
             return
-        
-        # Search for the indices of the artificial variables  on basic matrix
-        artificial_vars_in_solution = numpy.where([
-            i >= len(self.A.T) 
-            for i in self.B_A_indices
-        ])[0]
 
 
 
     def simplex_phase_two(self):
         
-        print("Matriz basica:")
-        print(self.B)
-        print("Vetor de custos básicos:")
-        print(self.cb)
-        print("Mapa de indices das colunas básicas:")
-        print(self.B_A_indices + numpy.array([1] * len(self.B_A_indices)))
-        print("Matriz não basica:")
-        print(self.N)
-        print("Vetor de custos não básicos:")
-        print(self.cn)
-        print("Mapa de indices das colunas não básicas:")
-        print(self.N_A_indices + numpy.array([1] * len(self.N_A_indices)))
-        print("Valor F.O.:")
-        print(self.objective)
+        # print("Matriz basica:")
+        # print(self.B)
+        # print("Vetor de custos básicos:")
+        # print(self.cb)
+        # print("Mapa de indices das colunas básicas:")
+        # print(self.B_A_indices)
+        # print("Matriz não basica:")
+        # print(self.N)
+        # print("Vetor de custos não básicos:")
+        # print(self.cn)
+        # print("Mapa de indices das colunas não básicas:")
+        # print(self.N_A_indices)
+        # print("Valor F.O.:")
+        # print(self.objective)
 
         self.it = 0
         while True:
@@ -135,26 +141,26 @@ class Simplex:
             self.xb = numpy.round(numpy.matmul(B_inv, self.b), 10)
             
 
-            print("Valor variáveis básicas:")
-            print(self.xb)
+            # print("Valor variáveis básicas:")
+            # print(self.xb)
 
             # Simplex multiplier vector
-            simplex_multipliers_T = (numpy.matmul(self.cb.T, B_inv))
+            self.simplex_multipliers_T = (numpy.matmul(self.cb.T, B_inv))
             
             # reduced costs vector (improvement of each non-basic variable)
-            cn_new = numpy.array([
-                self.cn[j] - numpy.matmul(simplex_multipliers_T, self.N.T[j]) 
+            self.cn_new = numpy.array([
+                self.cn[j] - numpy.matmul(self.simplex_multipliers_T, self.N.T[j]) 
                 for j in range(len(self.N.T))
             ])
 
-            cn_new = numpy.round(cn_new, 10)
+            self.cn_new = numpy.round(self.cn_new, 10)
 
             # Best improvement value
-            cn_k = numpy.min(cn_new)
+            cn_k = numpy.min(self.cn_new)
             
             # Position of the best improvement 
             # (same position of the variable that will go to the base)
-            in_var = numpy.argmin(cn_new)
+            in_var = numpy.argmin(self.cn_new)
 
             # If cn_k >= 0 (if best improvement is >= 0), 
             # then optimal was found
@@ -165,18 +171,18 @@ class Simplex:
                 return
             
             # Otherwise, calculate simplex direction
-            simplex_direction = numpy.matmul(B_inv, self.N.T[in_var])
-            simplex_direction = numpy.round(simplex_direction, 10)
-            if (all(simplex_direction <= 0)):
+            self.simplex_direction = numpy.matmul(B_inv, self.N.T[in_var])
+            self.simplex_direction = numpy.round(self.simplex_direction, 10)
+            if (all(self.simplex_direction <= 0)):
                 self.optimal = False
                 self.infeasible = False
                 self.unlimited = True
                 return
             
             # Steps sizes calculation (epslon)
-            indices_decreasing_steps = numpy.where(simplex_direction > 0)[0]
+            indices_decreasing_steps = numpy.where(self.simplex_direction > 0)[0]
             possible_step_sizes = numpy.array([
-                self.xb[i] / simplex_direction[i] 
+                self.xb[i] / self.simplex_direction[i] 
                 for i in indices_decreasing_steps
             ])
 
@@ -210,25 +216,25 @@ class Simplex:
             # Objective Function update
             self.objective += (cn_k * step_size)
 
-            print(
-                "entra coluna " + str(column_N) + 
-                ", sai coluna " + str(column_B)
-            )
+            # print(
+            #     "entra coluna " + str(column_N) + 
+            #     ", sai coluna " + str(column_B)
+            # )
            
-            print("Matriz basica:")
-            print(self.B)
-            print("Vetor de custos básicos:")
-            print(self.cb)
-            print("Mapa de indices das colunas básicas:")
-            print(self.B_A_indices + numpy.array([1] * len(self.B_A_indices)))
-            print("Matriz não basica:")
-            print(self.N)
-            print("Vetor de custos não básicos:")
-            print(self.cn)
-            print("Mapa de indices das colunas não básicas:")
-            print(self.N_A_indices + numpy.array([1] * len(self.N_A_indices)))
-            print("Valor F.O.:")
-            print(self.objective)
+            # print("Matriz basica:")
+            # print(self.B)
+            # print("Vetor de custos básicos:")
+            # print(self.cb)
+            # print("Mapa de indices das colunas básicas:")
+            # print(self.B_A_indices)
+            # print("Matriz não basica:")
+            # print(self.N)
+            # print("Vetor de custos não básicos:")
+            # print(self.cn)
+            # print("Mapa de indices das colunas não básicas:")
+            # print(self.N_A_indices)
+            # print("Valor F.O.:")
+            # print(self.objective)
 
             self.it += 1
 
@@ -259,41 +265,6 @@ class Simplex:
         # If the problem was found infeasible, stops
         if (self.infeasible):
             return False
-        
-        # Reset Non-Basic matrix and costs
-        self.N = numpy.zeros(shape=(len(self.A), len(self.A.T)-len(self.A)))
-        self.cn = numpy.zeros(len(self.A.T)-len(self.A))
-
-        # Get the A columns indices that should be on Non-Basic matrix
-        self.N_A_indices = numpy.delete(
-            self.N_A_indices, numpy.where([
-                i >= len(self.A.T) 
-                for i in self.N_A_indices
-            ])
-        )
-
-        # Assign Non-Basic matrix columns
-        k = 0
-        for i in self.N_A_indices:
-            self.N[:, k] = numpy.copy(self.A.T[i])
-            self.cn[k] = numpy.copy(self.c[i])
-            k += 1
-        
-        # Assign the Basic matrix columns
-        k = 0
-        for i in self.B_A_indices:
-            self.B[:, k] = numpy.copy(self.A.T[i])
-            self.cb[k] = numpy.copy(self.c[i])
-            k += 1
-
-        # Calculate Objective Value
-        self.objective = numpy.matmul(self.cb.T, self.xb)
-        
-        # Verify degeneracy
-        self.degenerated = (any(self.xb == 0))
-
-        # Solve the problem
-        self.simplex_phase_two()
 
         # If the solution is unlimited, stops
         if (self.unlimited):
@@ -301,7 +272,7 @@ class Simplex:
 
         # Make the solution variables vector
         self.solution = []
-        self.solution = numpy.zeros(len(self.A.T))
+        self.solution = numpy.zeros(len(self.B) + len(self.N.T))
         for i in range(len(self.xb)):
             if (self.xb[i] == 0):
                 self.degenerated = True
@@ -360,19 +331,26 @@ class Simplex:
         # Otherwise, if optimal, prints the solution 
         # and indicates if it is degenerated
         if (self.optimal):
-            text = "***** Solução ótima encontrada. *****"
-            text += "Solução no formato Padrão"
+            text = "***** Solução ótima encontrada. *****\n"
+            text += "Solução no formato Padrão."
             if (self.degenerated):
                 text += " A solução é degenerada."
             print(text)
             for i, value in enumerate(self.solution):
-                print(
-                    "x_" + str(i+1) + 
-                    " = " + 
-                    str(numpy.round(value, decimals=6))
-                )
+                if (i < len(self.A.T)):
+                    print(
+                        "x_" + str(i+1) + 
+                        " = " + 
+                        str(numpy.round(value, decimals=6))
+                    )
+                else:
+                    print(
+                        "(artificial) x_" + str(i+1) + 
+                        " = " + 
+                        str(numpy.round(value, decimals=6))
+                    )
             print(
-                "Função Objetivo (minimização) = " 
+                "Função Objetivo (considerando F.O. de minimização) = " 
                 + str(numpy.round(self.objective, decimals=6))
             )
             return

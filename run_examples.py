@@ -33,3 +33,8 @@ if __name__=="__main__":
     call_simplex(problem_type, c, A, operators, b)
     print("#" * 80 + "\n\n")
     
+    print("#" * 35 + " EXEMPLO 6 " + "#" * 34)
+    data =read_model_input("exemplos/exemplo_6.txt")
+    problem_type, c, A, operators, b = data
+    call_simplex(problem_type, c, A, operators, b)
+    print("#" * 80 + "\n\n")
