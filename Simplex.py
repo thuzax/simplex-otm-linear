@@ -1,8 +1,14 @@
-import numpy
-
+from import_or_install_package import install_package
+from import_or_install_package import verify_package_installed
+if verify_package_installed("numpy"):
+    import numpy
+else:
+    install_package("numpy")
+    import numpy
 class Simplex:
 
-    def __init__(self):
+    def __init__(self):        
+
         # Solution status
         self.optimal = None
         self.infeasible = None

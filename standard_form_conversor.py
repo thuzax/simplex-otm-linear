@@ -1,4 +1,10 @@
-import numpy
+from import_or_install_package import install_package
+from import_or_install_package import verify_package_installed
+if verify_package_installed("numpy"):
+    import numpy
+else:
+    install_package("numpy")
+    import numpy
 
 def convert_to_min(problem_type, c):
     if (problem_type.upper() == "MAX"):
