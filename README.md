@@ -12,7 +12,7 @@ A implementação foi feita utilizando Python3. É necessário ter instalado o p
 
 Inicialmente o algoritmo considera o formato padrão:
 
-$min \> f(x) = c^Tx$
+$min \quad f(x) = c^Tx$
 
 $s.a.:$
 
@@ -22,7 +22,7 @@ $\quad x \ge 0$
 
 Um algoritmo de inserção de variáveis de folga foi criado para que restrições de desigualdade ($\le$ ou $\ge$) fossem transformadas em restrições de igualadade. Portanto o formato aceito passou a ser:
 
-$min \> f(x) = c^Tx$
+$min \quad f(x) = c^Tx$
 
 $s.a.:$
 
