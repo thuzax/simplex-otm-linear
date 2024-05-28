@@ -87,6 +87,7 @@ $\quad \qquad .$
 m+4 $\qquad A_m$
 
 m+5 $\quad O$
+
 m+6 $\quad b$
 
 Cada linha da matriz $A$ contém $n$ valores que devem estar separados por espaço. O mesmo é válido para os vetores $O$ e $b$. É importante notar que todas as posições de todos os vetores e matrizes devem ser passados.
